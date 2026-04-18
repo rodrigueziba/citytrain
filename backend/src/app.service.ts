@@ -20,6 +20,20 @@ export interface CreateReservationPayload {
 export class AppService {
   constructor(private prisma: PrismaService) {}
 
+  async getAdminReservations() {
+    return this.prisma.reservation.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: {
+        timeSlot: true,
+        tickets: {
+          include: {
+            ticketCategory: true,
+          },
+        },
+      },
+    });
+  }
+
   async getBookingData() {
     const categories = await this.prisma.ticketCategory.findMany({
       where: { isActive: true },
@@ -121,5 +135,11 @@ export class AppService {
         },
       };
     }
+  }
+  async updatePaymentStatus(id: number, status: string) {
+    return this.prisma.reservation.update({
+      where: { id },
+      data: { paymentStatus: status },
+    });
   }
 }

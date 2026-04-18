@@ -2,7 +2,6 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 
-// CORREGIDO: Adaptamos el tipo a lo que devuelve tu backend
 type Reservation = {
   id: number;
   userName: string;
@@ -23,27 +22,46 @@ export default function AdminDashboard() {
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  // Separé la carga en una función para poder llamarla de nuevo al aprobar un pago
+  const loadReservations = () => {
     fetch('http://localhost:3001/api/admin/reservations')
       .then((res) => res.json())
       .then((data) => {
-        // ESCUDO: Verificamos si la respuesta es realmente una lista (Array)
-        if (Array.isArray(data)) {
-          setReservations(data);
-        } else {
-          // Si no es una lista, imprimimos el error real en consola y dejamos la tabla vacía
-          console.error('⚠️ El backend no devolvió una lista. Esto devolvió:', data);
-          setReservations([]); 
-        }
+        if (Array.isArray(data)) setReservations(data);
+        else setReservations([]);
         setLoading(false);
       })
       .catch((err) => {
         console.error('Error cargando reservas:', err);
-        setReservations([]); // Escudo en caso de que el servidor esté apagado
+        setReservations([]);
         setLoading(false);
       });
+  };
+
+  useEffect(() => {
+    loadReservations();
   }, []);
 
+  // Función para aprobar el pago
+  const handleApprove = async (id: number) => {
+    if (!confirm('¿Confirmar que recibiste la transferencia?')) return;
+    
+    try {
+      const res = await fetch(`http://localhost:3001/api/admin/reservations/${id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'approved' })
+      });
+      
+      if (res.ok) {
+        loadReservations(); // Recargamos la tabla para ver el cambio a verde
+      } else {
+        alert('Hubo un error al actualizar el estado.');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
 
   if (loading) {
     return (
@@ -96,12 +114,13 @@ export default function AdminDashboard() {
                   <th className="p-5 font-semibold">Pasajeros</th>
                   <th className="p-5 font-semibold">Pago</th>
                   <th className="p-5 font-semibold text-right">Total</th>
+                  <th className="p-5 font-semibold text-center">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5 text-sm">
                 {reservations.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="p-8 text-center text-gray-500 italic">
+                    <td colSpan={6} className="p-8 text-center text-gray-500 italic">
                       Aún no hay reservas registradas.
                     </td>
                   </tr>
@@ -118,7 +137,6 @@ export default function AdminDashboard() {
                       </td>
                       <td className="p-5">
                         <ul className="text-xs space-y-1 text-gray-400">
-                          {/* CORREGIDO: Mapeamos res.tickets y leemos ticket.ticketCategory */}
                           {res.tickets?.map((ticket, idx) => (
                             <li key={idx}>
                               <span className="font-bold text-gray-300">{ticket.quantity}x</span> {ticket.ticketCategory?.name || 'Ticket'}
@@ -142,6 +160,19 @@ export default function AdminDashboard() {
                       </td>
                       <td className="p-5 text-right font-extrabold text-lg text-white">
                         ${res.totalPrice.toLocaleString('es-AR')}
+                      </td>
+                      <td className="p-5 text-center">
+                        {/* Botón mágico solo si es transferencia pendiente */}
+                        {res.paymentMethod === 'transfer' && res.paymentStatus === 'pending' ? (
+                          <button 
+                            onClick={() => handleApprove(res.id)}
+                            className="bg-green-600 hover:bg-green-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-md"
+                          >
+                            Aprobar Pago
+                          </button>
+                        ) : (
+                          <span className="text-gray-600 text-xs">-</span>
+                        )}
                       </td>
                     </tr>
                   ))
