@@ -1,10 +1,27 @@
 'use client';
 import { useEffect, useState } from 'react';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
+import { useLanguage } from '@/app/context/LanguageContext'; // IMPORT CORREGIDO
 
 type Category = { id: number; name: string; price: number };
 type TimeSlot = { id: number; time: string };
 
+type TransferBankData = {
+  titular: string;
+  bank: string;
+  alias: string;
+  cbu: string;
+};
+
+type TransferDetails = {
+  bankData: TransferBankData;
+  reservationId: string | number;
+};
+
 export default function BookingWidget() {
+  const { t } = useLanguage(); // TRAEMOS LA FUNCIÓN DE TRADUCCIÓN
+
   const [categories, setCategories] = useState<Category[]>([]);
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
   
@@ -17,7 +34,7 @@ export default function BookingWidget() {
   
   const [paymentMethod, setPaymentMethod] = useState<'mercadopago' | 'transfer'>('mercadopago');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showTransferDetails, setShowTransferDetails] = useState<any>(null);
+  const [showTransferDetails, setShowTransferDetails] = useState<TransferDetails | null>(null);
 
   useEffect(() => {
     fetch('http://localhost:3001/api/booking-data')
@@ -61,7 +78,7 @@ export default function BookingWidget() {
           setShowTransferDetails(data);
         }
       } else {
-        alert(`Error al crear la reserva: ${data.message || 'Error desconocido'}`);
+        alert(`Error: ${data.message || 'Error desconocido'}`);
       }
     } catch (error) {
       console.error('Error enviando reserva:', error);
@@ -80,9 +97,9 @@ export default function BookingWidget() {
         <div className="w-16 h-16 bg-green-500/20 text-green-400 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">
           ✓
         </div>
-        <h2 className="text-3xl font-extrabold mb-2 tracking-tight">¡Reserva Recibida!</h2>
+        <h2 className="text-3xl font-extrabold mb-2 tracking-tight">{t('book_success')}</h2>
         <p className="mb-8 text-gray-400 text-sm leading-relaxed">
-          Para confirmar tu lugar, realizá la transferencia y enviá el comprobante por WhatsApp.
+          {t('book_success_sub')}
         </p>
         
         <div className="bg-black/50 p-6 rounded-2xl text-left space-y-3 border border-white/5 mb-8 backdrop-blur-sm">
@@ -91,7 +108,7 @@ export default function BookingWidget() {
           <p className="flex justify-between"><span className="text-gray-400">Alias:</span> <span className="font-medium tracking-wider">{showTransferDetails.bankData.alias}</span></p>
           <p className="flex justify-between"><span className="text-gray-400">CBU:</span> <span className="font-medium">{showTransferDetails.bankData.cbu}</span></p>
           <div className="mt-4 pt-4 border-t border-white/10 flex justify-between items-center">
-            <span className="text-gray-400">Total a transferir:</span>
+            <span className="text-gray-400">Total:</span>
             <span className="text-[#E53935] font-extrabold text-2xl">${totalPrice.toLocaleString('es-AR')}</span>
           </div>
         </div>
@@ -102,7 +119,7 @@ export default function BookingWidget() {
           rel="noopener noreferrer"
           className="flex items-center justify-center gap-2 w-full bg-[#25D366] hover:bg-[#1EBE5D] text-white py-4 rounded-xl font-bold transition-all shadow-lg hover:shadow-[#25D366]/30 hover:-translate-y-1"
         >
-          <span>Enviar comprobante por WhatsApp</span>
+          <span>{t('book_btn_send_voucher')}</span>
         </a>
       </div>
     );
@@ -111,24 +128,31 @@ export default function BookingWidget() {
   // --- VISTA PRINCIPAL: FORMULARIO ---
   return (
     <div className="bg-[#111111]/80 backdrop-blur-xl p-8 rounded-[2rem] shadow-[0_8px_32px_rgba(0,0,0,0.5)] border border-white/10 w-full max-w-lg pointer-events-auto text-white">
-      <h2 className="text-3xl font-extrabold mb-8 text-center tracking-tight">Armá tu Viaje</h2>
+      <h2 className="text-3xl font-extrabold mb-8 text-center tracking-tight">{t('book_title')}</h2>
 
       {/* 1. Selección de Fecha */}
       <div className="mb-6">
-        <label className="block text-sm font-semibold text-gray-300 mb-2 uppercase tracking-wider">¿Cuándo viajás?</label>
-        {/* Usamos color-scheme: dark para que el calendario nativo sea oscuro */}
-        <input 
-          type="date" 
-          style={{ colorScheme: 'dark' }}
-          className="w-full p-4 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#E53935] focus:ring-1 focus:ring-[#E53935] transition-all cursor-pointer"
-          value={selectedDate}
-          onChange={(e) => setSelectedDate(e.target.value)}
+        <label className="block text-sm font-semibold text-gray-300 mb-2 uppercase tracking-wider">{t('book_date')}</label>
+        <DatePicker
+          selected={selectedDate ? new Date(selectedDate + 'T12:00:00') : null}
+          onChange={(date: Date | null) => {
+            if (date) {
+              const iso = date.toISOString().split('T')[0];
+              setSelectedDate(iso);
+            } else {
+              setSelectedDate('');
+            }
+          }}
+          dateFormat="dd/MM/yyyy"
+          minDate={new Date()}
+          placeholderText={t('book_date_ph')}
+          className="w-full p-4 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-[#E53935] focus:ring-1 focus:ring-[#E53935] transition-all cursor-pointer"
         />
       </div>
 
       {/* 2. Selección de Horario */}
       <div className="mb-6">
-        <label className="block text-sm font-semibold text-gray-300 mb-2 uppercase tracking-wider">Horario</label>
+        <label className="block text-sm font-semibold text-gray-300 mb-2 uppercase tracking-wider">{t('book_time')}</label>
         <div className="grid grid-cols-2 gap-3">
           {timeSlots.map((slot) => (
             <button
@@ -148,7 +172,7 @@ export default function BookingWidget() {
 
       {/* 3. Selección de Pasajeros */}
       <div className="mb-6 space-y-3">
-        <label className="block text-sm font-semibold text-gray-300 mb-2 uppercase tracking-wider">Pasajeros</label>
+        <label className="block text-sm font-semibold text-gray-300 mb-2 uppercase tracking-wider">{t('book_passengers')}</label>
         {categories.map((cat) => (
           <div key={cat.id} className="flex justify-between items-center bg-white/5 p-4 rounded-2xl border border-white/10 transition-all hover:border-white/20">
             <div>
@@ -173,20 +197,18 @@ export default function BookingWidget() {
       {/* 4. Datos del Usuario */}
       <div className="mb-6 space-y-4">
         <div>
-          <label className="block text-sm font-semibold text-gray-300 mb-2 uppercase tracking-wider">Nombre Completo</label>
+          <label className="block text-sm font-semibold text-gray-300 mb-2 uppercase tracking-wider">{t('book_name')}</label>
           <input 
             type="text" 
-            placeholder="Ej: Juan Pérez"
             className="w-full p-4 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-[#E53935] focus:ring-1 focus:ring-[#E53935] transition-all"
             value={userName}
             onChange={(e) => setUserName(e.target.value)}
           />
         </div>
         <div>
-          <label className="block text-sm font-semibold text-gray-300 mb-2 uppercase tracking-wider">Email</label>
+          <label className="block text-sm font-semibold text-gray-300 mb-2 uppercase tracking-wider">{t('book_email')}</label>
           <input 
             type="email" 
-            placeholder="juan@email.com"
             className="w-full p-4 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-[#E53935] focus:ring-1 focus:ring-[#E53935] transition-all"
             value={userEmail}
             onChange={(e) => setUserEmail(e.target.value)}
@@ -196,7 +218,7 @@ export default function BookingWidget() {
 
       {/* 5. Método de Pago */}
       <div className="mb-8">
-        <label className="block text-sm font-semibold text-gray-300 mb-2 uppercase tracking-wider">Método de Pago</label>
+        <label className="block text-sm font-semibold text-gray-300 mb-2 uppercase tracking-wider">{t('book_method')}</label>
         <div className="flex gap-3 bg-white/5 p-1.5 rounded-xl border border-white/10">
           <button 
             onClick={() => setPaymentMethod('mercadopago')}
@@ -224,7 +246,7 @@ export default function BookingWidget() {
       {/* 6. Total y Botón de Pago */}
       <div className="pt-6 border-t border-white/10">
         <div className="flex justify-between items-end mb-6">
-          <span className="text-gray-300 font-medium text-lg">Total final:</span>
+          <span className="text-gray-300 font-medium text-lg">{t('book_total')}</span>
           <span className="text-4xl font-extrabold text-[#E53935] drop-shadow-[0_2px_10px_rgba(229,57,53,0.3)]">
             ${totalPrice.toLocaleString('es-AR')}
           </span>
@@ -235,10 +257,10 @@ export default function BookingWidget() {
           disabled={!isFormValid || isSubmitting}
         >
           {isSubmitting 
-            ? 'Procesando...' 
+            ? t('book_btn_load') 
             : paymentMethod === 'mercadopago' 
-              ? 'Pagar con MercadoPago' 
-              : 'Confirmar Reserva'
+              ? t('book_btn_mp') 
+              : t('book_btn_transfer')
           }
         </button>
       </div>

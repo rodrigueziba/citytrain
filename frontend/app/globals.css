@@ -15,3 +15,43 @@ input[type='number']::-webkit-outer-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
+
+/* --- CUSTOM DATEPICKER STYLES --- */
+.react-datepicker-wrapper {
+  width: 100%;
+}
+.react-datepicker {
+  background-color: rgba(17, 17, 17, 0.95) !important;
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  font-family: inherit !important;
+  border-radius: 1rem !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8) !important;
+}
+.react-datepicker__header {
+  background-color: transparent !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+  padding-top: 1rem !important;
+}
+.react-datepicker__current-month, .react-datepicker__day-name {
+  color: #e5e7eb !important;
+  font-weight: 600 !important;
+}
+.react-datepicker__day {
+  color: #9ca3af !important;
+  transition: all 0.2s ease;
+}
+.react-datepicker__day:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  border-radius: 0.5rem !important;
+  color: white !important;
+}
+.react-datepicker__day--selected, .react-datepicker__day--keyboard-selected {
+  background-color: #E53935 !important;
+  color: #ffffff !important;
+  border-radius: 0.5rem !important;
+  font-weight: bold !important;
+}
+.react-datepicker__triangle {
+  display: none !important; /* Ocultamos la flechita superior */
+}
