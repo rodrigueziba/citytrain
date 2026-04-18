@@ -1,9 +1,17 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
+/* Un reseteo básico para el body */
 body {
+  background-color: #111111;
+  color: #ffffff;
   margin: 0;
   padding: 0;
   overflow-x: hidden;
+}
+
+/* Quitamos las flechitas por defecto de los inputs de números */
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }

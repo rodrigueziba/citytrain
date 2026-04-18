@@ -1,13 +1,57 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+
+// Categorías de pasajes (Jubilado, Estudiante, etc.)
+model TicketCategory {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  price       Float
+  isActive    Boolean  @default(true) // Permite ocultar categorías sin borrarlas
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  reservationTickets ReservationTicket[]
+}
+
+// Horarios fijos de salida (10:30, 12:00, etc.)
+model TimeSlot {
+  id          Int      @id @default(autoincrement())
+  time        String   @unique // Formato "HH:mm"
+  capacity    Int      @default(40) // Capacidad máxima del colectivo
+  isActive    Boolean  @default(true)
+
+  reservations Reservation[]
+}
+
+// La Reserva General del Turista
+model Reservation {
+  id            Int      @id @default(autoincrement())
+  userName      String
+  userEmail     String
+  date          DateTime // La fecha elegida para el viaje
+  timeSlotId    Int
+  timeSlot      TimeSlot @relation(fields: [timeSlotId], references: [id])
+  totalPrice    Float
+  paymentStatus String   @default("pending") // pending, paid, cancelled
+  paymentMethod String   // mercadopago, transfer
+  createdAt     DateTime @default(now())
+
+  tickets       ReservationTicket[]
+}
+
+// Detalle de cuántos pasajes de cada tipo compró en su reserva
+model ReservationTicket {
+  id               Int      @id @default(autoincrement())
+  reservationId    Int
+  reservation      Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  ticketCategoryId Int
+  ticketCategory   TicketCategory @relation(fields: [ticketCategoryId], references: [id])
+  quantity         Int
+  priceAtBooking   Float    // Precio congelado al momento de la compra
 }

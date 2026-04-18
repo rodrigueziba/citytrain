@@ -32,4 +32,23 @@ export default tseslint.config(
       "prettier/prettier": ["error", { endOfLine: "auto" }],
     },
   },
+  // Prisma Client es generado en node_modules; el type-aware linter a veces no
+  // resuelve sus tipos igual que `tsc` y marca falsos positivos en reglas no-unsafe-*.
+  {
+    files: ['prisma/**/*.ts'],
+    rules: {
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+    },
+  },
+  // SDK Mercado Pago: el analizador type-aware a veces no resuelve bien sus tipos.
+  {
+    files: ['src/mercadopago/**/*.ts'],
+    rules: {
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+    },
+  },
 );

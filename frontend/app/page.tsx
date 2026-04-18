@@ -1,40 +1,39 @@
-import TrainSceneDynamic from '@/app/components/TrainSceneDynamic';
+import TrainScene from '@/app/components/TrainScene';
+import BookingWidget from '@/app/components/BookingWidget';
 
 export default function Home() {
   return (
-    <main className="relative w-full h-screen overflow-hidden bg-[#1a1a1a]">
+    <main className="relative w-full min-h-screen overflow-x-hidden bg-[#1a1a1a]">
       
-      {/* CAPA 1: Escena 3D de Fondo */}
-      <div className="absolute inset-0 z-0">
-        <TrainSceneDynamic />
+      {/* CAPA 1: Escena 3D de Fondo (Fixed para que se quede mientras scrolleas) */}
+      <div className="fixed inset-0 z-0">
+        <TrainScene />
       </div>
 
-      {/* CAPA 2: Interfaz de Usuario (UI) superpuesta */}
-      <div className="relative z-10 flex flex-col items-center justify-center h-full pointer-events-none px-4">
+      {/* CAPA 2: Contenido */}
+      <div className="relative z-10 flex flex-col md:flex-row items-center justify-evenly min-h-screen pointer-events-none px-4 lg:px-20 py-10 gap-10">
         
-        <div className="text-center drop-shadow-2xl bg-black/20 p-8 rounded-3xl backdrop-blur-sm">
-          <h1 className="text-5xl md:text-7xl font-extrabold text-white mb-4 tracking-tight">
-            Ushuaia <span className="text-[#E53935]">City Train</span>
+        {/* Título a la izquierda */}
+        <div className="text-center md:text-left drop-shadow-2xl md:w-1/2">
+          <h1 className="text-5xl md:text-8xl font-extrabold text-white mb-4 tracking-tight leading-tight">
+            Ushuaia <br/> <span className="text-[#E53935]">City Train</span>
           </h1>
-          <p className="text-lg md:text-2xl text-gray-200 mb-10 font-light">
+          <p className="text-xl md:text-3xl text-gray-200 font-light backdrop-blur-sm bg-black/10 inline-block p-2 rounded-lg">
             Una hora de un viaje <strong className="font-bold">I-NOL-VI-DA-BLE</strong>
           </p>
+        </div>
 
-          {/* 
-            Botón de acción. 
-            El pointer-events-auto es clave para que se pueda clickear por encima del canvas 3D 
-          */}
-          <button className="pointer-events-auto bg-[#E53935] hover:bg-[#C62828] text-white px-10 py-4 rounded-full font-bold text-xl transition-all hover:scale-105 shadow-[0_0_20px_rgba(229,57,53,0.4)]">
-            Reservar Pasajes
-          </button>
+        {/* Widget a la derecha */}
+        <div className="md:w-1/2 flex justify-center w-full z-20">
+          <BookingWidget />
         </div>
 
       </div>
 
-      {/* CAPA 3: Widget de WhatsApp flotante (Placeholder por ahora) */}
-      <div className="absolute bottom-6 right-6 z-20">
-        <button className="bg-green-500 text-white p-4 rounded-full shadow-lg hover:scale-110 transition-transform">
-          💬 WA
+      {/* WhatsApp Flotante */}
+      <div className="fixed bottom-6 right-6 z-30 pointer-events-auto">
+        <button className="bg-green-500 text-white p-4 rounded-full shadow-[0_0_15px_rgba(34,197,94,0.5)] hover:scale-110 transition-transform text-2xl">
+          💬
         </button>
       </div>
 
