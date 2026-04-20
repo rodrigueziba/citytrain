@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, OnModuleInit } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import type { Items } from 'mercadopago/dist/clients/commonTypes';
 import type { PreferenceRequest } from 'mercadopago/dist/clients/preference/commonTypes';
@@ -17,9 +17,23 @@ export interface CreateReservationPayload {
 }
 
 @Injectable()
-export class AppService {
+export class AppService implements OnModuleInit{
   constructor(private prisma: PrismaService) {}
+  async onModuleInit() {
+    const admin = await this.prisma.adminUser.findUnique({
+      where: { username: 'admin' },
+    });
 
+    if (!admin) {
+      await this.prisma.adminUser.create({
+        data: {
+          username: 'admin',
+          password: 'ushuaia2026',
+        },
+      });
+      console.log('🦇 Administrador maestro creado automáticamente al iniciar.');
+    }
+  }
   async getAdminReservations() {
     return this.prisma.reservation.findMany({
       orderBy: { createdAt: 'desc' },
@@ -121,6 +135,7 @@ export class AppService {
       return {
         method: 'mercadopago' as const,
         init_point: response.init_point ?? '',
+        preferenceId: response.id,
       };
     } else {
       // Si es transferencia, devolvemos los datos del banco
@@ -141,5 +156,55 @@ export class AppService {
       where: { id },
       data: { paymentStatus: status },
     });
+  }
+  async validateAdmin(username: string, passwordString: string) {
+    const user = await this.prisma.adminUser.findUnique({
+      where: { username },
+    });
+
+    // En un sistema en producción real, acá usaríamos "bcrypt" para comparar contraseñas encriptadas.
+    // Por ahora, verificamos coincidencia exacta.
+    if (user && user.password === passwordString) {
+      return user;
+    }
+    return null;
+  }
+
+  // --- NUEVO: Escuchar a MercadoPago (Webhook) ---
+  async handleMercadoPagoWebhook(body: any) {
+    // MercadoPago a veces manda 'type' o 'topic', y el ID del pago adentro de 'data' o suelto.
+    const type = body?.type || body?.topic;
+    const paymentId = body?.data?.id || body?.id;
+
+    if (type === 'payment' && paymentId) {
+      const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
+      
+      try {
+        // Le preguntamos a MercadoPago los detalles de este pago
+        const response = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
+          headers: { Authorization: `Bearer ${accessToken}` }
+        });
+        const paymentData = await response.json();
+
+        // Si recordás, antes guardamos el ID de la reserva en 'external_reference'
+        if (paymentData.external_reference) {
+          const reservationId = parseInt(paymentData.external_reference, 10);
+          const status = paymentData.status; // Puede ser 'approved', 'pending', 'rejected'
+
+          // Actualizamos la base de datos automáticamente
+          await this.prisma.reservation.update({
+            where: { id: reservationId },
+            data: { paymentStatus: status }
+          });
+          
+          console.log(`🚂 [Webhook] Reserva #${reservationId} actualizada a: ${status}`);
+        }
+      } catch (error) {
+        console.error('Error procesando webhook de MercadoPago:', error);
+      }
+    }
+    
+    // Siempre hay que responderle "OK" a MP para que no siga insistiendo
+    return { received: true };
   }
 }

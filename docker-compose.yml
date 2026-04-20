@@ -1,3 +1,14 @@
+# City Train — desarrollo local con Docker
+#
+# Pasos típicos (desde la raíz del repo):
+#   1) Obtener código: git clone https://github.com/rodrigueziba/citytrain.git && cd citytrain
+#      (si ya lo tenés: git pull origin main)
+#   2) Levantar todo: docker compose up --build
+#      El backend aplica migraciones Prisma al arrancar (Dockerfile.dev: migrate deploy).
+#   3) Opcional — datos de ejemplo: docker exec train_backend npx prisma db seed
+#   4) Frontend http://localhost:3000 | API http://localhost:3001 | Logs: docker compose logs -f
+#   5) Detener: docker compose down  (borrar DB local: docker compose down -v)
+#
 version: '3.8'
 
 services:
@@ -42,6 +53,8 @@ services:
       - /app/.next
     environment:
       - NEXT_PUBLIC_API_URL=http://localhost:3001
+      - WATCHPACK_POLLING=true 
+      - CHOKIDAR_USEPOLLING=true 
 
 volumes:
   postgres_data:

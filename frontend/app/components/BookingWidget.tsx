@@ -1,268 +1,289 @@
 'use client';
-import { useEffect, useState } from 'react';
-import DatePicker from 'react-datepicker';
-import 'react-datepicker/dist/react-datepicker.css';
-import { useLanguage } from '@/app/context/LanguageContext'; // IMPORT CORREGIDO
+import { useState, useEffect } from 'react';
+import { useLanguage } from '../context/LanguageContext';
+// 1. Importamos el SDK de Mercado Pago
+import { initMercadoPago, Wallet } from '@mercadopago/sdk-react';
+
+// 2. Inicializamos Mercado Pago (¡ACÁ PONÉS TU PUBLIC KEY!)
+// Podés encontrarla en tu panel de desarrolladores de MP. Empieza con "TEST-" o "APP_USR-"
+initMercadoPago('APP_USR-894f58d0-fa52-4bc4-8a9a-04b4d0fc12d5', { locale: 'es-AR' });
 
 type Category = { id: number; name: string; price: number };
-type TimeSlot = { id: number; time: string };
-
-type TransferBankData = {
-  titular: string;
-  bank: string;
-  alias: string;
-  cbu: string;
-};
-
-type TransferDetails = {
-  bankData: TransferBankData;
-  reservationId: string | number;
-};
+type TimeSlot = { id: number; time: string; capacity?: number };
 
 export default function BookingWidget() {
-  const { t } = useLanguage(); // TRAEMOS LA FUNCIÓN DE TRADUCCIÓN
-
+  const { t, tCategory, language } = useLanguage();
+  
   const [categories, setCategories] = useState<Category[]>([]);
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
-  
-  const [selectedDate, setSelectedDate] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  const [step, setStep] = useState(1); 
+  const [selectedDate, setSelectedDate] = useState<string>('');
   const [selectedTime, setSelectedTime] = useState<number | null>(null);
-  const [cart, setCart] = useState<{ [key: number]: number }>({});
+  const [cart, setCart] = useState<Record<string, number>>({});
   
+  const [upcomingDates, setUpcomingDates] = useState<Date[]>([]);
+
   const [userName, setUserName] = useState('');
   const [userEmail, setUserEmail] = useState('');
-  
-  const [paymentMethod, setPaymentMethod] = useState<'mercadopago' | 'transfer'>('mercadopago');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showTransferDetails, setShowTransferDetails] = useState<TransferDetails | null>(null);
+  
+  // --- NUEVO: Estado para guardar el ID de pago de Mercado Pago ---
+  const [preferenceId, setPreferenceId] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('http://localhost:3001/api/booking-data')
       .then((res) => res.json())
       .then((data) => {
-        setCategories(data.categories);
-        setTimeSlots(data.timeSlots);
+        setCategories(data.categories || []);
+        setTimeSlots(data.timeSlots || []);
+        setLoading(false);
       })
-      .catch((err) => console.error('Error fetching data:', err));
+      .catch((err) => {
+        console.error('Error:', err);
+        setLoading(false);
+      });
+
+    const dates = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date();
+      d.setDate(d.getDate() + i);
+      dates.push(d);
+    }
+    setUpcomingDates(dates);
+    if (dates.length > 0) {
+      setSelectedDate(dates[0].toISOString().split('T')[0]);
+    }
   }, []);
 
-  const updateQuantity = (categoryId: number, delta: number) => {
+  const updateQuantity = (catId: number, delta: number) => {
     setCart((prev) => {
-      const current = prev[categoryId] || 0;
-      const newQuantity = Math.max(0, current + delta);
-      return { ...prev, [categoryId]: newQuantity };
+      const current = prev[catId] || 0;
+      const next = current + delta;
+      if (next < 0) return prev;
+      return { ...prev, [catId]: next };
     });
   };
 
+  const totalPassengers = Object.values(cart).reduce((a, b) => a + b, 0);
   const totalPrice = categories.reduce((total, cat) => {
     return total + (cart[cat.id] || 0) * cat.price;
   }, 0);
 
-  const handleCheckout = async () => {
+  const handleContinue = () => {
+    if (!selectedTime) return alert('Por favor, seleccioná un horario.');
+    if (totalPassengers === 0) return alert('Por favor, agregá al menos un pasajero.');
+    setStep(2);
+  };
+
+  const handleSubmit = async (paymentMethod: 'mercadopago' | 'transfer') => {
+    if (!userName || !userEmail) return alert('Completá tus datos.');
     setIsSubmitting(true);
-    const payload = { userName, userEmail, date: selectedDate, timeSlotId: selectedTime, paymentMethod, cart };
+
+    const payload = {
+      userName,
+      userEmail,
+      date: selectedDate,
+      timeSlotId: selectedTime,
+      paymentMethod,
+      cart,
+    };
 
     try {
-      const response = await fetch('http://localhost:3001/api/reservations', {
+      const res = await fetch('http://localhost:3001/api/reservations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
+      const data = await res.json();
 
-      const data = await response.json();
-
-      if (response.ok) {
-        if (data.method === 'mercadopago' && data.init_point) {
-          window.location.href = data.init_point;
-        } else if (data.method === 'transfer') {
-          setShowTransferDetails(data);
-        }
-      } else {
-        alert(`Error: ${data.message || 'Error desconocido'}`);
+      if (!res.ok) {
+        throw new Error(data.message || 'Error al conectar con Mercado Pago');
       }
-    } catch (error) {
-      console.error('Error enviando reserva:', error);
-      alert('Hubo un problema de conexión.');
+
+      if (data.method === 'mercadopago' && data.preferenceId) {
+        // En lugar de redirigir, guardamos el ID para mostrar el Brick
+        setPreferenceId(data.preferenceId);
+      } else if (data.method === 'transfer') {
+        alert('Reserva guardada con éxito. Te mostraremos los datos bancarios.');
+        // Acá podrías redirigir a una página de gracias
+      }
+    } catch (error: any) {
+      console.error(error);
+      alert(`Error: ${error.message}`); // Ahora el alert te dice el motivo exacto
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const isFormValid = selectedDate && selectedTime && totalPrice > 0 && userName && userEmail;
+  if (loading) return <div className="p-8 text-center text-[#222222]">Cargando disponibilidad...</div>;
 
-  // --- VISTA ALTERNATIVA: ÉXITO TRANSFERENCIA ---
-  if (showTransferDetails) {
+  // --- UI: PASO 1 (Selección) ---
+  if (step === 1) {
     return (
-      <div className="bg-[#111111]/80 backdrop-blur-xl p-8 rounded-[2rem] text-white text-center border border-white/10 w-full max-w-lg shadow-[0_8px_32px_rgba(0,0,0,0.5)] pointer-events-auto">
-        <div className="w-16 h-16 bg-green-500/20 text-green-400 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">
-          ✓
-        </div>
-        <h2 className="text-3xl font-extrabold mb-2 tracking-tight">{t('book_success')}</h2>
-        <p className="mb-8 text-gray-400 text-sm leading-relaxed">
-          {t('book_success_sub')}
-        </p>
+      <div className="bg-[#FCFBFA] border border-[#E5E0D8] rounded-[24px] max-w-md w-full mx-auto shadow-lg overflow-hidden flex flex-col text-[#222222] font-sans">
         
-        <div className="bg-black/50 p-6 rounded-2xl text-left space-y-3 border border-white/5 mb-8 backdrop-blur-sm">
-          <p className="flex justify-between"><span className="text-gray-400">Titular:</span> <span className="font-medium">{showTransferDetails.bankData.titular}</span></p>
-          <p className="flex justify-between"><span className="text-gray-400">Banco:</span> <span className="font-medium">{showTransferDetails.bankData.bank}</span></p>
-          <p className="flex justify-between"><span className="text-gray-400">Alias:</span> <span className="font-medium tracking-wider">{showTransferDetails.bankData.alias}</span></p>
-          <p className="flex justify-between"><span className="text-gray-400">CBU:</span> <span className="font-medium">{showTransferDetails.bankData.cbu}</span></p>
-          <div className="mt-4 pt-4 border-t border-white/10 flex justify-between items-center">
-            <span className="text-gray-400">Total:</span>
-            <span className="text-[#E53935] font-extrabold text-2xl">${totalPrice.toLocaleString('es-AR')}</span>
+        <div className="p-6 pb-2">
+          <h2 className="text-[28px] font-extrabold leading-tight">Reservá tu viaje</h2>
+          <p className="text-[#666666] text-[15px] mt-1">Recorrido por la ciudad · 55 min</p>
+        </div>
+
+        <div className="p-6 space-y-8 flex-1">
+          <div className="space-y-3">
+            <label className="block text-[15px] font-semibold">Fecha</label>
+            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide" style={{ scrollbarWidth: 'none' }}>
+              {upcomingDates.map((date, idx) => {
+                const dateStr = date.toISOString().split('T')[0];
+                const isSelected = selectedDate === dateStr;
+                const dayNames = { es: ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'], en: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'], pt: ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'] };
+                const dayName = dayNames[language][date.getDay()];
+                const dayNum = date.getDate();
+
+                return (
+                  <button 
+                    key={idx}
+                    onClick={() => setSelectedDate(dateStr)}
+                    className={`flex-shrink-0 w-[72px] h-[84px] rounded-[16px] border-2 flex flex-col items-center justify-center transition-all ${
+                      isSelected ? 'border-[#9E3B22] bg-[#9E3B22]/5 text-[#9E3B22]' : 'border-[#E5E0D8] bg-white text-[#666666] hover:border-[#D1CCC5]'
+                    }`}
+                  >
+                    <span className="text-[13px] font-medium">{dayName}</span>
+                    <span className={`text-[22px] font-bold mt-0.5 ${isSelected ? 'text-[#9E3B22]' : 'text-[#222222]'}`}>{dayNum}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <label className="block text-[15px] font-semibold">Horario de salida</label>
+            <div className="grid grid-cols-2 gap-3">
+              {timeSlots.map((slot) => {
+                const isSelected = selectedTime === slot.id;
+                const lugares = slot.capacity || 40; 
+                const isFull = lugares === 0;
+
+                return (
+                  <button
+                    key={slot.id}
+                    disabled={isFull}
+                    onClick={() => setSelectedTime(slot.id)}
+                    className={`p-4 rounded-[16px] border-2 text-left transition-all ${
+                      isFull ? 'border-[#E5E0D8] bg-[#F7F6F2] opacity-60 cursor-not-allowed'
+                      : isSelected ? 'border-[#9E3B22] bg-[#9E3B22]/5' 
+                      : 'border-[#E5E0D8] bg-white hover:border-[#D1CCC5]'
+                    }`}
+                  >
+                    <div className={`text-[20px] font-bold ${isFull ? 'text-[#999999]' : 'text-[#222222]'}`}>{slot.time}</div>
+                    <div className={`text-[14px] mt-0.5 ${isFull ? 'text-[#999999]' : 'text-[#3E7B44]'}`}>
+                      {isFull ? 'Completo' : `${lugares} lugares`}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="space-y-1 mt-4">
+            <label className="block text-[15px] font-semibold mb-2">Pasajeros</label>
+            <div className="divide-y divide-[#E5E0D8]">
+              {categories.map((cat) => (
+                <div key={cat.id} className="py-4 flex justify-between items-center">
+                  <div>
+                    <div className="text-[17px] font-semibold text-[#222222]">{tCategory(cat.name)}</div>
+                    <div className="text-[14px] text-[#666666] mt-0.5">${cat.price.toLocaleString('es-AR')}</div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <button onClick={() => updateQuantity(cat.id, -1)} className="w-10 h-10 rounded-full border border-[#D1CCC5] bg-white flex items-center justify-center text-[24px] text-[#666666] hover:bg-[#F7F6F2] active:scale-95 transition-transform">−</button>
+                    <span className="w-4 text-center text-[18px] font-bold text-[#222222]">{cart[cat.id] || 0}</span>
+                    <button onClick={() => updateQuantity(cat.id, 1)} className="w-10 h-10 rounded-full border border-[#D1CCC5] bg-white flex items-center justify-center text-[24px] text-[#222222] hover:bg-[#F7F6F2] active:scale-95 transition-transform">+</button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
-        <a 
-          href={`https://wa.me/5492901402272?text=Hola!%20Env%C3%ADo%20comprobante%20de%20la%20reserva%20%23${showTransferDetails.reservationId}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center justify-center gap-2 w-full bg-[#25D366] hover:bg-[#1EBE5D] text-white py-4 rounded-xl font-bold transition-all shadow-lg hover:shadow-[#25D366]/30 hover:-translate-y-1"
-        >
-          <span>{t('book_btn_send_voucher')}</span>
-        </a>
+        <div className="bg-[#F4F1EB] p-6 pt-5 rounded-b-[24px]">
+          <div className="flex justify-between items-end mb-4">
+            <div className="text-[15px] text-[#666666]">Total · {totalPassengers} pasajeros</div>
+            <div className="text-[28px] font-extrabold text-[#222222] leading-none">
+              <span className="text-[14px] font-normal text-[#666666] mr-1">ARS</span>
+              ${totalPrice.toLocaleString('es-AR')}
+            </div>
+          </div>
+          <button onClick={handleContinue} className="w-full bg-[#9E3B22] hover:bg-[#8A331D] text-white py-[18px] rounded-[14px] font-bold text-[18px] transition-colors shadow-sm">
+            Continuar al pago
+          </button>
+        </div>
+
       </div>
     );
   }
 
-  // --- VISTA PRINCIPAL: FORMULARIO ---
+  // --- UI: PASO 2 (Datos Personales y Pago) ---
   return (
-    <div className="bg-[#111111]/80 backdrop-blur-xl p-8 rounded-[2rem] shadow-[0_8px_32px_rgba(0,0,0,0.5)] border border-white/10 w-full max-w-lg pointer-events-auto text-white">
-      <h2 className="text-3xl font-extrabold mb-8 text-center tracking-tight">{t('book_title')}</h2>
-
-      {/* 1. Selección de Fecha */}
-      <div className="mb-6">
-        <label className="block text-sm font-semibold text-gray-300 mb-2 uppercase tracking-wider">{t('book_date')}</label>
-        <DatePicker
-          selected={selectedDate ? new Date(selectedDate + 'T12:00:00') : null}
-          onChange={(date: Date | null) => {
-            if (date) {
-              const iso = date.toISOString().split('T')[0];
-              setSelectedDate(iso);
-            } else {
-              setSelectedDate('');
-            }
-          }}
-          dateFormat="dd/MM/yyyy"
-          minDate={new Date()}
-          placeholderText={t('book_date_ph')}
-          className="w-full p-4 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-[#E53935] focus:ring-1 focus:ring-[#E53935] transition-all cursor-pointer"
-        />
-      </div>
-
-      {/* 2. Selección de Horario */}
-      <div className="mb-6">
-        <label className="block text-sm font-semibold text-gray-300 mb-2 uppercase tracking-wider">{t('book_time')}</label>
-        <div className="grid grid-cols-2 gap-3">
-          {timeSlots.map((slot) => (
-            <button
-              key={slot.id}
-              onClick={() => setSelectedTime(slot.id)}
-              className={`py-3 px-4 rounded-xl font-bold transition-all border ${
-                selectedTime === slot.id 
-                  ? 'bg-[#E53935] border-[#E53935] text-white shadow-[0_0_15px_rgba(229,57,53,0.4)] scale-[1.02]' 
-                  : 'bg-white/5 border-white/10 text-gray-300 hover:bg-white/10 hover:border-white/20'
-              }`}
-            >
-              {slot.time} hs
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* 3. Selección de Pasajeros */}
-      <div className="mb-6 space-y-3">
-        <label className="block text-sm font-semibold text-gray-300 mb-2 uppercase tracking-wider">{t('book_passengers')}</label>
-        {categories.map((cat) => (
-          <div key={cat.id} className="flex justify-between items-center bg-white/5 p-4 rounded-2xl border border-white/10 transition-all hover:border-white/20">
-            <div>
-              <p className="font-bold text-md text-gray-100">{cat.name}</p>
-              <p className="text-sm text-[#E53935] font-semibold mt-0.5">${cat.price.toLocaleString('es-AR')}</p>
-            </div>
-            <div className="flex items-center gap-3 bg-black/30 p-1.5 rounded-full border border-white/5">
-              <button 
-                onClick={() => updateQuantity(cat.id, -1)} 
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-[#E53935] font-bold text-lg transition-colors"
-              >−</button>
-              <span className="w-6 text-center font-bold text-lg">{cart[cat.id] || 0}</span>
-              <button 
-                onClick={() => updateQuantity(cat.id, 1)} 
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-[#E53935] font-bold text-lg transition-colors"
-              >+</button>
-            </div>
+    <div className="bg-[#FCFBFA] border border-[#E5E0D8] rounded-[24px] max-w-md w-full mx-auto shadow-lg p-6 text-[#222222] font-sans">
+      <button 
+        onClick={() => { setStep(1); setPreferenceId(null); }} 
+        className="text-[#9E3B22] font-semibold text-[15px] mb-6 flex items-center gap-1"
+      >
+        ← Volver
+      </button>
+      
+      <h2 className="text-[24px] font-extrabold mb-6">Tus datos</h2>
+      
+      {/* Ocultamos el formulario si ya se generó la preferencia de MP */}
+      {!preferenceId && (
+        <div className="space-y-5 mb-8">
+          <div>
+            <label className="block text-[15px] font-semibold mb-2">Nombre completo</label>
+            <input 
+              type="text" 
+              value={userName} onChange={(e) => setUserName(e.target.value)}
+              className="w-full p-4 rounded-[12px] border border-[#D1CCC5] bg-white text-[17px] focus:outline-none focus:border-[#9E3B22]"
+              placeholder="Ej: Juan Pérez"
+            />
           </div>
-        ))}
-      </div>
+          <div>
+            <label className="block text-[15px] font-semibold mb-2">Email</label>
+            <input 
+              type="email" 
+              value={userEmail} onChange={(e) => setUserEmail(e.target.value)}
+              className="w-full p-4 rounded-[12px] border border-[#D1CCC5] bg-white text-[17px] focus:outline-none focus:border-[#9E3B22]"
+              placeholder="juan@email.com"
+            />
+          </div>
+        </div>
+      )}
 
-      {/* 4. Datos del Usuario */}
-      <div className="mb-6 space-y-4">
-        <div>
-          <label className="block text-sm font-semibold text-gray-300 mb-2 uppercase tracking-wider">{t('book_name')}</label>
-          <input 
-            type="text" 
-            className="w-full p-4 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-[#E53935] focus:ring-1 focus:ring-[#E53935] transition-all"
-            value={userName}
-            onChange={(e) => setUserName(e.target.value)}
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-semibold text-gray-300 mb-2 uppercase tracking-wider">{t('book_email')}</label>
-          <input 
-            type="email" 
-            className="w-full p-4 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-[#E53935] focus:ring-1 focus:ring-[#E53935] transition-all"
-            value={userEmail}
-            onChange={(e) => setUserEmail(e.target.value)}
-          />
-        </div>
-      </div>
-
-      {/* 5. Método de Pago */}
-      <div className="mb-8">
-        <label className="block text-sm font-semibold text-gray-300 mb-2 uppercase tracking-wider">{t('book_method')}</label>
-        <div className="flex gap-3 bg-white/5 p-1.5 rounded-xl border border-white/10">
-          <button 
-            onClick={() => setPaymentMethod('mercadopago')}
-            className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all ${
-              paymentMethod === 'mercadopago' 
-                ? 'bg-[#009EE3] text-white shadow-md' 
-                : 'text-gray-400 hover:text-white hover:bg-white/5'
-            }`}
-          >
-            MercadoPago
-          </button>
-          <button 
-            onClick={() => setPaymentMethod('transfer')}
-            className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all ${
-              paymentMethod === 'transfer' 
-                ? 'bg-white/20 text-white shadow-md' 
-                : 'text-gray-400 hover:text-white hover:bg-white/5'
-            }`}
-          >
-            Transferencia
-          </button>
-        </div>
-      </div>
-
-      {/* 6. Total y Botón de Pago */}
-      <div className="pt-6 border-t border-white/10">
-        <div className="flex justify-between items-end mb-6">
-          <span className="text-gray-300 font-medium text-lg">{t('book_total')}</span>
-          <span className="text-4xl font-extrabold text-[#E53935] drop-shadow-[0_2px_10px_rgba(229,57,53,0.3)]">
-            ${totalPrice.toLocaleString('es-AR')}
-          </span>
-        </div>
-        <button 
-          onClick={handleCheckout}
-          className="w-full bg-gradient-to-r from-[#E53935] to-[#C62828] text-white py-4 rounded-xl font-bold text-lg uppercase tracking-wider transition-all hover:shadow-[0_8px_25px_rgba(229,57,53,0.4)] hover:-translate-y-1 disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-none disabled:cursor-not-allowed"
-          disabled={!isFormValid || isSubmitting}
-        >
-          {isSubmitting 
-            ? t('book_btn_load') 
-            : paymentMethod === 'mercadopago' 
-              ? t('book_btn_mp') 
-              : t('book_btn_transfer')
-          }
-        </button>
+      <div className="space-y-3">
+        {preferenceId ? (
+          /* --- ACÁ ESTÁ LA MAGIA DEL BRICK --- */
+          <div className="mt-4 animate-fade-in">
+            <h3 className="text-center font-bold mb-4 text-[#666666]">Completá tu pago de forma segura</h3>
+            <Wallet 
+              initialization={{ preferenceId: preferenceId }} 
+              customization={{ texts: { valueProp: 'smart_option' } }} 
+            />
+          </div>
+        ) : (
+          <>
+            <button 
+              onClick={() => handleSubmit('mercadopago')} disabled={isSubmitting}
+              className="w-full bg-[#009EE3] hover:bg-[#008ACA] text-white py-[16px] rounded-[14px] font-bold text-[17px] transition-colors"
+            >
+              {isSubmitting ? 'Procesando...' : 'Pagar con Mercado Pago'}
+            </button>
+            <button 
+              onClick={() => handleSubmit('transfer')} disabled={isSubmitting}
+              className="w-full bg-white border-2 border-[#E5E0D8] hover:border-[#D1CCC5] text-[#222222] py-[16px] rounded-[14px] font-bold text-[17px] transition-colors"
+            >
+              Transferencia Bancaria
+            </button>
+          </>
+        )}
       </div>
     </div>
   );

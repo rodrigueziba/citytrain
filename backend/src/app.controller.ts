@@ -37,12 +37,22 @@ export class AppController {
     );
   }
 
-  @Post('admin/login')
-  adminLogin(@Body() body: AdminLoginBody) {
-    // Verificamos el usuario y contraseña maestro
-    if (body.username === 'admin' && body.password === 'ushuaia2026') {
-      return { success: true, token: 'baticueva-token-secreto-123' };
-    }
-    return { success: false, message: 'Credenciales inválidas' };
+
+@Post('admin/login')
+async adminLogin(@Body() body: any) {
+  // Buscamos al usuario en la base de datos
+  const user = await this.appService.validateAdmin(body.username, body.password);
+  
+  if (user) {
+    // Si existe y la clave coincide, lo dejamos pasar
+    return { success: true, token: 'baticueva-token-secreto-123' };
+  }
+  // Si no existe o la clave está mal, lo rebotamos
+  return { success: false, message: 'Usuario o contraseña incorrectos' };
+}
+
+@Post('webhooks/mercadopago')
+  async mercadopagoWebhook(@Body() body: any) {
+    return await this.appService.handleMercadoPagoWebhook(body);
   }
 }

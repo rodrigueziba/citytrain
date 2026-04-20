@@ -25,7 +25,6 @@ const translations = {
     btn_email: "Enviar un Email",
     btn_whatsapp: "Hablar por WhatsApp",
     
-    // Textos del Widget de Reservas
     book_title: "Armá tu Viaje",
     book_date: "¿Cuándo viajás?",
     book_date_ph: "Seleccioná una fecha",
@@ -128,6 +127,7 @@ interface LanguageContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
   t: (key: keyof typeof translations['es']) => string;
+  tCategory: (name: string) => string; // NUEVO TIPO
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
@@ -135,12 +135,50 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [language, setLanguage] = useState<Language>('es');
 
+  // Traducción general
   const t = (key: keyof typeof translations['es']) => {
     return translations[language][key] || translations['es'][key];
   };
 
+  // NUEVO: Traductor inteligente para los pasajes de la base de datos
+  const tCategory = (name: string) => {
+    if (language === 'es') return name; // En español dejamos el de la DB intacto
+
+    const nameLower = name.toLowerCase();
+
+    // Diccionario de palabras clave
+    const categoryDict = {
+      en: {
+        'jubilado': 'Retiree',
+        'nacional': 'National Tourist',
+        'extranjero': 'Foreign Tourist',
+        'turista': 'Tourist',
+        'menor': 'Child',
+        'residente': 'Local Resident'
+      },
+      pt: {
+        'jubilado': 'Aposentado',
+        'nacional': 'Turista Nacional',
+        'extranjero': 'Turista Estrangeiro',
+        'turista': 'Turista',
+        'menor': 'Criança',
+        'residente': 'Residente Local'
+      }
+    };
+
+    // Buscamos si el nombre de la DB contiene alguna de las palabras clave
+    for (const [key, translation] of Object.entries(categoryDict[language])) {
+      if (nameLower.includes(key)) {
+        return translation;
+      }
+    }
+
+    // Si no encuentra nada, devuelve el nombre original
+    return name;
+  };
+
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, t }}>
+    <LanguageContext.Provider value={{ language, setLanguage, t, tCategory }}>
       {children}
     </LanguageContext.Provider>
   );
