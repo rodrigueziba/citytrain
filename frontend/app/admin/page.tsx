@@ -39,7 +39,7 @@ export default function AdminDashboard() {
   const tomorrowStr = getLocalDateStr(1);
 
   const loadReservations = () => {
-    fetch('http://localhost:3001/api/admin/reservations')
+    fetch('${API_URL}/api/admin/reservations')
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data)) setReservations(data);
@@ -69,7 +69,7 @@ export default function AdminDashboard() {
     setLoading(true);
     
     try {
-      const res = await fetch('http://localhost:3001/api/admin/login', {
+      const res = await fetch('${API_URL}/api/admin/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })
@@ -99,7 +99,7 @@ export default function AdminDashboard() {
   const handleApprove = async (id: number) => {
     if (!confirm('¿Confirmar que recibiste la transferencia?')) return;
     try {
-      const res = await fetch(`http://localhost:3001/api/admin/reservations/${id}/status`, {
+      const res = await fetch('${API_URL}/api/admin/reservations/${id}/status', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'approved' })
