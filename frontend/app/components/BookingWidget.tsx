@@ -263,9 +263,9 @@ export default function BookingWidget() {
           {preferenceId ? (
             <div className="mt-4 animate-fade-in">
               <h3 className="text-center font-bold mb-4 text-[#666666]">Completá tu pago de forma segura</h3>
-              <Wallet 
-                initialization={{ preferenceId: preferenceId }} 
-                customization={{ texts: { valueProp: 'smart_option' } }} 
+              <Wallet
+                initialization={{ preferenceId: preferenceId }}
+                customization={{ valueProp: 'convenience_all' }}
               />
             </div>
           ) : (
