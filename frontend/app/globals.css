@@ -1,6 +1,5 @@
 @import "tailwindcss";
 
-/* Un reseteo básico para el body */
 body {
   background-color: #111111;
   color: #ffffff;
@@ -9,14 +8,111 @@ body {
   overflow-x: hidden;
 }
 
-/* Quitamos las flechitas por defecto de los inputs de números */
 input[type='number']::-webkit-inner-spin-button,
 input[type='number']::-webkit-outer-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
 
-/* --- CUSTOM DATEPICKER STYLES --- */
+/* === THEME VARIABLES === */
+
+:root, [data-theme="default"] {
+  --t-bg: #FCFBFA;
+  --t-bg-alt: #F4F1EB;
+  --t-bg-dark: #222222;
+  --t-bg-card: #ffffff;
+  --t-accent: #9E3B22;
+  --t-accent-hover: #8A331D;
+  --t-accent-subtle: rgba(158, 59, 34, 0.06);
+  --t-text: #222222;
+  --t-text-muted: #666666;
+  --t-text-faint: #999999;
+  --t-border: #E5E0D8;
+  --t-border-light: #D1CCC5;
+  --t-success: #3E7B44;
+  --t-overlay: rgba(252, 251, 250, 0.60);
+  --t-overlay-section: rgba(244, 241, 235, 0.95);
+  --t-overlay-card: rgba(252, 251, 250, 0.90);
+  --t-radius: 24px;
+  --t-radius-sm: 16px;
+  --t-radius-xs: 12px;
+}
+
+[data-theme="vintage"] {
+  --t-bg: #F5F0E6;
+  --t-bg-alt: #EDE6D4;
+  --t-bg-dark: #2A1A0F;
+  --t-bg-card: #FBF7EF;
+  --t-accent: #8B1A1A;
+  --t-accent-hover: #7A1515;
+  --t-accent-subtle: rgba(139, 26, 26, 0.06);
+  --t-text: #2A1A0F;
+  --t-text-muted: #6B5040;
+  --t-text-faint: #9B8878;
+  --t-border: #C8B490;
+  --t-border-light: #B8A080;
+  --t-success: #4A7A35;
+  --t-overlay: rgba(245, 240, 230, 0.70);
+  --t-overlay-section: rgba(237, 230, 212, 0.95);
+  --t-overlay-card: rgba(251, 247, 239, 0.90);
+  --t-radius: 4px;
+  --t-radius-sm: 4px;
+  --t-radius-xs: 4px;
+}
+
+[data-theme="expedition"] {
+  --t-bg: #0A1628;
+  --t-bg-alt: #0D1E35;
+  --t-bg-dark: #060E1A;
+  --t-bg-card: #0F1F38;
+  --t-accent: #B8D4F0;
+  --t-accent-hover: #9EC4E8;
+  --t-accent-subtle: rgba(184, 212, 240, 0.06);
+  --t-text: #E2D9C8;
+  --t-text-muted: #8CA0B8;
+  --t-text-faint: #506070;
+  --t-border: #1E3050;
+  --t-border-light: #2A4068;
+  --t-success: #4A9E6A;
+  --t-overlay: rgba(10, 22, 40, 0.80);
+  --t-overlay-section: rgba(13, 30, 53, 0.96);
+  --t-overlay-card: rgba(15, 31, 56, 0.90);
+  --t-radius: 2px;
+  --t-radius-sm: 2px;
+  --t-radius-xs: 2px;
+}
+
+/* === THEME FONT OVERRIDES === */
+
+[data-theme="vintage"] h1,
+[data-theme="vintage"] h2,
+[data-theme="vintage"] h3 {
+  font-family: var(--font-playfair), Georgia, 'Times New Roman', serif !important;
+  font-style: italic;
+}
+
+[data-theme="vintage"] h1 {
+  font-style: normal;
+  font-weight: 900;
+}
+
+[data-theme="expedition"] h1,
+[data-theme="expedition"] h2 {
+  font-weight: 200 !important;
+  letter-spacing: 0.06em !important;
+}
+
+/* === THEME TRANSITIONS === */
+
+[data-theme] * {
+  transition:
+    background-color 0.35s ease,
+    color 0.25s ease,
+    border-color 0.3s ease;
+}
+
+/* === CUSTOM DATEPICKER STYLES === */
+
 .react-datepicker-wrapper {
   width: 100%;
 }
@@ -53,5 +149,5 @@ input[type='number']::-webkit-outer-spin-button {
   font-weight: bold !important;
 }
 .react-datepicker__triangle {
-  display: none !important; /* Ocultamos la flechita superior */
+  display: none !important;
 }

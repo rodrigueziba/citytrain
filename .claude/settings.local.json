@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Start-Process explorer.exe \"c:\\\\Users\\\\chimo\\\\citytrain\\\\citytrain\\\\frontend\\\\public\\\\gallery\")"
+    ]
+  }
+}

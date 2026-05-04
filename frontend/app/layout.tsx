@@ -1,9 +1,16 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import { Inter, Playfair_Display } from 'next/font/google';
 import './globals.css';
-import { LanguageProvider } from '@/app/context/LanguageContext'; // IMPORTAMOS ESTO
+import { LanguageProvider } from '@/app/context/LanguageContext';
+import { ThemeProvider } from '@/app/context/ThemeContext';
 
-const inter = Inter({ subsets: ['latin'] });
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
+const playfair = Playfair_Display({
+  subsets: ['latin'],
+  variable: '--font-playfair',
+  style: ['normal', 'italic'],
+  weight: ['400', '700', '900'],
+});
 
 export const metadata: Metadata = {
   title: 'Ushuaia City Train',
@@ -16,12 +23,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es">
+    <html lang="es" className={`${inter.variable} ${playfair.variable}`}>
       <body className={inter.className}>
-        {/* ENVOLVEMOS A LOS CHILDREN */}
-        <LanguageProvider>
-          {children}
-        </LanguageProvider>
+        <ThemeProvider>
+          <LanguageProvider>
+            {children}
+          </LanguageProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
