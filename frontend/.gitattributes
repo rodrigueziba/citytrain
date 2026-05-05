@@ -1,0 +1,2 @@
+# Scripts ejecutados en Linux (Docker); CRLF rompe el shebang /bin/sh
+docker-entrypoint.dev.sh text eol=lf

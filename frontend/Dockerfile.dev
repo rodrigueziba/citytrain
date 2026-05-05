@@ -1,7 +1,15 @@
 FROM node:20-alpine
 WORKDIR /app
+
+COPY docker-entrypoint.dev.sh /usr/local/bin/docker-entrypoint.dev.sh
+# En Windows el .sh puede traer CRLF; sin esto: "exec ...: no such file or directory"
+RUN sed -i 's/\r$//' /usr/local/bin/docker-entrypoint.dev.sh \
+  && chmod +x /usr/local/bin/docker-entrypoint.dev.sh
+
 COPY package*.json ./
 RUN npm install
 COPY . .
+
 EXPOSE 3000
+ENTRYPOINT ["/bin/sh", "/usr/local/bin/docker-entrypoint.dev.sh"]
 CMD ["npm", "run", "dev"]

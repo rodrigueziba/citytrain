@@ -14,9 +14,9 @@ const THEMES: ThemeMeta[] = [
   {
     id: 'default',
     name: 'Actual',
-    bg: '#FCFBFA',
-    card: '#fff',
-    accent: '#9E3B22',
+    bg: '#ffffff',
+    card: '#ffffff',
+    accent: '#bc7155',
     dark: false,
   },
   {

@@ -1,6 +1,6 @@
 'use client';
 
-import TrainScene from '@/app/components/TrainScene';
+import SplatViewer from '@/app/components/SplatViewerDynamic';
 import BookingWidget from '@/app/components/BookingWidget';
 import Navbar from '@/app/components/Navbar';
 import Gallery from '@/app/components/Gallery';
@@ -20,18 +20,18 @@ export default function Home() {
     ? 'bg-[#0A1628]/82'
     : isVintage
     ? 'bg-[#F5F0E6]/72'
-    : 'bg-[#FCFBFA]/60';
+    : 'bg-white/70';
 
   return (
     <main
-      className="relative w-full min-h-screen font-sans selection:bg-[#9E3B22]/20"
+      className="relative w-full min-h-screen font-sans selection:bg-[#bc7155]/20"
       style={{ background: 'var(--t-bg)', color: 'var(--t-text)' }}
     >
       <Navbar />
 
       {/* Escena 3D fija de fondo */}
       <div className="fixed inset-0 z-0">
-        <TrainScene />
+        <SplatViewer />
         <div
           className={`absolute inset-0 backdrop-blur-[2px] pointer-events-none transition-all duration-500 ${sceneOverlay}`}
         />
@@ -135,26 +135,53 @@ export default function Home() {
             {/* ─ DISEÑO ACTUAL (default) ─ */}
             {!isVintage && !isExpedition && (
               <>
-                <h1 className="text-6xl md:text-8xl font-black mb-6 tracking-tighter leading-[0.95]"
-                  style={{ color: 'var(--t-text)' }}
+                <div
+                  className="inline-block mb-6 px-4 py-1.5 text-[11px] font-bold tracking-[0.2em] uppercase"
+                  style={{
+                    background: 'var(--t-bg-card)',
+                    border: '1px solid var(--t-border)',
+                    borderRadius: '1000px',
+                    color: 'var(--t-text-muted)',
+                  }}
+                >
+                  Ushuaia · Tierra del Fuego
+                </div>
+                <h1
+                  className="text-6xl md:text-[110px] font-black mb-6 leading-[0.88]"
+                  style={{ color: 'var(--t-text)', letterSpacing: '-0.02em' }}
                 >
                   Ushuaia <br />
                   <span style={{ color: 'var(--t-accent)' }}>City Train</span>
                 </h1>
                 <p
-                  className="text-xl md:text-2xl font-medium backdrop-blur-md inline-block p-5 shadow-sm"
-                  style={{
-                    background: 'var(--t-overlay-card)',
-                    border: '1px solid var(--t-border)',
-                    borderRadius: '20px',
-                    color: 'var(--t-text-muted)',
-                  }}
+                  className="text-lg md:text-xl font-normal mb-10 max-w-lg"
+                  style={{ color: 'var(--t-text-muted)', lineHeight: '1.61', letterSpacing: '0.01em' }}
                 >
                   {t('hero_subtitle')}{' '}
-                  <strong className="font-bold" style={{ color: 'var(--t-accent)' }}>
+                  <span className="font-bold" style={{ color: 'var(--t-accent)' }}>
                     {t('hero_highlight')}
-                  </strong>
+                  </span>
                 </p>
+                <div className="flex gap-4 xl:justify-start justify-center flex-wrap">
+                  <a
+                    href="#nosotros"
+                    className="px-6 py-4 font-bold text-sm tracking-wider uppercase transition-all"
+                    style={{ background: 'var(--t-accent)', color: '#ffffff', borderRadius: '1000px' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--t-accent-hover)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'var(--t-accent)')}
+                  >
+                    Conocer más
+                  </a>
+                  <a
+                    href="#servicios"
+                    className="px-6 py-4 font-bold text-sm tracking-wider uppercase transition-all"
+                    style={{ background: 'transparent', color: 'var(--t-text)', border: '1px solid var(--t-text)', borderRadius: '1000px' }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'var(--t-text)'; e.currentTarget.style.color = '#ffffff'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--t-text)'; }}
+                  >
+                    Nuestros Servicios
+                  </a>
+                </div>
               </>
             )}
           </div>
@@ -453,28 +480,38 @@ export default function Home() {
               </div>
             )}
 
-            {/* ─ DEFAULT: Cards con emojis ─ */}
+            {/* ─ DEFAULT: Feature cards estilo Hyer Aviation ─ */}
             {!isVintage && !isExpedition && (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 {[
-                  { icon: '🚂', title: t('srv_tour_title'), text: t('srv_tour_text') },
-                  { icon: '🎫', title: t('srv_benefits_title'), text: t('srv_benefits_text') },
-                  { icon: '🗺️', title: t('srv_stats_title'), text: t('srv_stats_text') },
-                ].map(({ icon, title, text }) => (
+                  { stat: '13 km', title: t('srv_tour_title'), text: t('srv_tour_text') },
+                  { stat: '−10%', title: t('srv_benefits_title'), text: t('srv_benefits_text') },
+                  { stat: '55 min', title: t('srv_stats_title'), text: t('srv_stats_text') },
+                ].map(({ stat, title, text }) => (
                   <div
-                    key={icon}
-                    className="p-10 shadow-lg transition-all"
+                    key={stat}
+                    className="p-10"
                     style={{
                       background: 'var(--t-bg-card)',
                       border: '1px solid var(--t-border)',
                       borderRadius: 'var(--t-radius)',
+                      borderTop: '3px solid var(--t-accent)',
                     }}
                   >
-                    <div className="text-5xl mb-6">{icon}</div>
-                    <h3 className="text-2xl font-bold mb-4" style={{ color: 'var(--t-text)' }}>
+                    <div
+                      className="text-4xl font-black mb-4"
+                      style={{ color: 'var(--t-accent)', letterSpacing: '-0.02em', lineHeight: 1 }}
+                    >
+                      {stat}
+                    </div>
+                    <div className="w-8 h-px mb-5" style={{ background: 'var(--t-border)' }} />
+                    <h3
+                      className="text-xl font-bold mb-3"
+                      style={{ color: 'var(--t-text)', letterSpacing: '-0.3px', lineHeight: 1.1 }}
+                    >
                       {title}
                     </h3>
-                    <p className="text-lg leading-relaxed" style={{ color: 'var(--t-text-muted)' }}>
+                    <p className="text-base leading-relaxed" style={{ color: 'var(--t-text-muted)' }}>
                       {text}
                     </p>
                   </div>
@@ -560,24 +597,47 @@ export default function Home() {
             </div>
 
             <div
-              className="mt-24 pt-8 flex flex-col md:flex-row justify-between items-center gap-6"
+              className="mt-24 pt-8"
               style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}
             >
+              <div className="flex flex-col md:flex-row justify-between items-center gap-6 mb-6">
+                <div className="flex items-center gap-6">
+                  {[
+                    { label: 'Facebook', href: '#' },
+                    { label: 'Instagram', href: '#' },
+                    { label: 'YouTube', href: '#' },
+                    { label: 'info@ushuaiacitytrain.com', href: 'mailto:info@ushuaiacitytrain.com' },
+                  ].map(({ label, href }) => (
+                    <a
+                      key={label}
+                      href={href}
+                      target={href.startsWith('mailto') ? undefined : '_blank'}
+                      rel={href.startsWith('mailto') ? undefined : 'noopener noreferrer'}
+                      className="text-xs font-bold uppercase tracking-widest transition-colors"
+                      style={{ color: 'var(--t-text-faint)' }}
+                      onMouseEnter={e => (e.currentTarget.style.color = 'var(--t-bg)')}
+                      onMouseLeave={e => (e.currentTarget.style.color = 'var(--t-text-faint)')}
+                    >
+                      {label}
+                    </a>
+                  ))}
+                </div>
+                <a
+                  href="/admin"
+                  className="text-xs font-bold uppercase tracking-widest transition-colors"
+                  style={{ color: 'var(--t-text-faint)' }}
+                  onMouseEnter={e => (e.currentTarget.style.color = 'var(--t-bg)')}
+                  onMouseLeave={e => (e.currentTarget.style.color = 'var(--t-text-faint)')}
+                >
+                  Acceso Admin
+                </a>
+              </div>
               <p
-                className="text-sm uppercase tracking-widest font-bold"
+                className="text-sm uppercase tracking-widest font-bold text-center md:text-left"
                 style={{ color: 'var(--t-text-faint)' }}
               >
                 © {new Date().getFullYear()} Ushuaia City Train. Todos los derechos reservados.
               </p>
-              <a
-                href="/admin"
-                className="text-sm font-bold uppercase tracking-widest transition-colors"
-                style={{ color: 'var(--t-text-faint)' }}
-                onMouseEnter={e => (e.currentTarget.style.color = 'var(--t-bg)')}
-                onMouseLeave={e => (e.currentTarget.style.color = 'var(--t-text-faint)')}
-              >
-                Acceso Admin
-              </a>
             </div>
           </div>
         </section>

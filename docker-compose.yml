@@ -9,7 +9,6 @@
 #   4) Frontend http://localhost:3000 | API http://localhost:3001 | Logs: docker compose logs -f
 #   5) Detener: docker compose down  (borrar DB local: docker compose down -v)
 #
-version: '3.8'
 
 services:
   db:
@@ -45,6 +44,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile.dev
     container_name: train_frontend
+    command: npm run dev -- --webpack
     ports:
       - "3000:3000"
     volumes:

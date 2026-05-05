@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 body {
-  background-color: #111111;
-  color: #ffffff;
+  background-color: #ffffff;
+  color: #000d10;
   margin: 0;
   padding: 0;
   overflow-x: hidden;
@@ -17,25 +17,25 @@ input[type='number']::-webkit-outer-spin-button {
 /* === THEME VARIABLES === */
 
 :root, [data-theme="default"] {
-  --t-bg: #FCFBFA;
-  --t-bg-alt: #F4F1EB;
-  --t-bg-dark: #222222;
+  --t-bg: #ffffff;
+  --t-bg-alt: #f5f5f7;
+  --t-bg-dark: #000d10;
   --t-bg-card: #ffffff;
-  --t-accent: #9E3B22;
-  --t-accent-hover: #8A331D;
-  --t-accent-subtle: rgba(158, 59, 34, 0.06);
-  --t-text: #222222;
-  --t-text-muted: #666666;
-  --t-text-faint: #999999;
-  --t-border: #E5E0D8;
-  --t-border-light: #D1CCC5;
+  --t-accent: #bc7155;
+  --t-accent-hover: #a35f46;
+  --t-accent-subtle: rgba(188, 113, 85, 0.06);
+  --t-text: #000d10;
+  --t-text-muted: #8e8e95;
+  --t-text-faint: #b5b5b8;
+  --t-border: #e5e5e7;
+  --t-border-light: #d4d4d6;
   --t-success: #3E7B44;
-  --t-overlay: rgba(252, 251, 250, 0.60);
-  --t-overlay-section: rgba(244, 241, 235, 0.95);
-  --t-overlay-card: rgba(252, 251, 250, 0.90);
-  --t-radius: 24px;
-  --t-radius-sm: 16px;
-  --t-radius-xs: 12px;
+  --t-overlay: rgba(255, 255, 255, 0.65);
+  --t-overlay-section: rgba(245, 245, 247, 0.97);
+  --t-overlay-card: rgba(255, 255, 255, 0.94);
+  --t-radius: 45px;
+  --t-radius-sm: 1000px;
+  --t-radius-xs: 45px;
 }
 
 [data-theme="vintage"] {
@@ -143,7 +143,7 @@ input[type='number']::-webkit-outer-spin-button {
   color: white !important;
 }
 .react-datepicker__day--selected, .react-datepicker__day--keyboard-selected {
-  background-color: #E53935 !important;
+  background-color: #bc7155 !important;
   color: #ffffff !important;
   border-radius: 0.5rem !important;
   font-weight: bold !important;

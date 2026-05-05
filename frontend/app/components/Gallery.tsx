@@ -40,7 +40,7 @@ export default function Gallery() {
       ? '#8B1A1A'
       : theme === 'expedition'
       ? '#B8D4F0'
-      : '#9E3B22';
+      : '#bc7155';
 
   const goTo = useCallback((idx: number) => {
     setActive(idx);
